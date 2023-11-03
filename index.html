@@ -113,6 +113,24 @@
           max="2000"
         />
         <div id="zoomlevelIndicator"></div>
+        <input
+          type="range"
+          name="hTiltlevel"
+          id="canvasHTiltlevel"
+          value="1000"
+          min="0"
+          max="90"
+        />
+        <div id="hTiltlevelIndicator"></div>
+        <input
+          type="range"
+          name="wTiltlevel"
+          id="canvasWTiltlevel"
+          value="1000"
+          min="0"
+          max="90"
+        />
+        <div id="wTiltlevelIndicator"></div>
       </div>
     </div>
   </body>
@@ -122,11 +140,32 @@
   // Get the slider and the zoom level indicator elements
   let slider = document.getElementById("canvasZooomlevel");
   let zoomLevelIndicator = document.getElementById("zoomlevelIndicator");
+  zoomLevelIndicator.innerHTML = slider.value;
+
+  let hTiltSlider = document.getElementById("canvasHTiltlevel");
+  let hTiltLevelIndicator = document.getElementById("hTiltlevelIndicator");
+  hTiltLevelIndicator.innerHTML = hTiltSlider.value;
+
+  let wTiltSlider = document.getElementById("canvasWTiltlevel");
+  let wTiltLevelIndicator = document.getElementById("wTiltlevelIndicator");
+  wTiltLevelIndicator.innerHTML = wTiltSlider.value;
 
   // Add an event listener to the slider for the input event
   slider.addEventListener("input", function () {
     // Update the zoom level indicator's innerHTML with the slider's current value
     zoomLevelIndicator.innerHTML = this.value;
+    calculate();
+  });
+
+  hTiltSlider.addEventListener("input", function () {
+    // Update the zoom level indicator's innerHTML with the slider's current value
+    hTiltLevelIndicator.innerHTML = this.value;
+    calculate();
+  });
+
+  wTiltSlider.addEventListener("input", function () {
+    // Update the zoom level indicator's innerHTML with the slider's current value
+    wTiltLevelIndicator.innerHTML = this.value;
     calculate();
   });
 
@@ -165,14 +204,14 @@
 
     console.log(canvasAspectRatio);
 
-    const angleW = 25;
-    const angleH = 10;
+    const angleW = document.getElementById("canvasWTiltlevel").value;
+    const angleH = document.getElementById("canvasHTiltlevel").value;
 
     const base = document.getElementById("canvasZooomlevel").value;
 
     const zoom = 0.4;
 
-    const w = (cLength / base) * zoom;
+    const w = (cLength / base) * zoom * Math.cos(degToRad(angleW));
     const ws = (cWidth / base) * zoom * Math.sin(degToRad(angleW));
     const h =
       (((cHeight / base) * zoom) / canvasAspectRatio) *
