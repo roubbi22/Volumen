@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Projektion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body>
+    <div class="w-screen h-screen flex justify-center items-center flex-col">
+      <!-- aspect ratio 16:9 -->
+      <div class="w-1/2 aspect-video border border-black">
+        <canvas
+          id="canvas"
+          class="w-full h-full"
+          width="1600px"
+          height="900px"
+        ></canvas>
+      </div>
+      <div>
+        <input type="range" name="angleZ" id="rangeAngleZ" min="0" max="180" />
+        <div id="angleZindicator">0</div>
+      </div>
+      <div>
+        <input type="range" name="angleXY" id="rangeAngleXY" min="0" max="90" />
+        <div id="angleXYindicator">0</div>
+      </div>
+      <div>
+        <input type="range" name="zoom" id="rangeZoom" min="0.1" max="5" />
+        <div id="zoomindicator">0</div>
+      </div>
+    </div>
+  </body>
+  <script>
+    const rangeAngleZ = document.getElementById("rangeAngleZ");
+    rangeAngleZ.value = 0;
+    const angleZindicator = document.getElementById("angleZindicator");
+    document.addEventListener("DOMContentLoaded", () => {
+      rangeAngleZ.addEventListener("input", (e) => {
+        angleZindicator.innerHTML = e.target.value;
+        renderEverything();
+      });
+    });
+
+    const rangeAngleXY = document.getElementById("rangeAngleXY");
+    rangeAngleXY.value = 0;
+    const angleXYindicator = document.getElementById("angleXYindicator");
+    document.addEventListener("DOMContentLoaded", () => {
+      rangeAngleXY.addEventListener("input", (e) => {
+        angleXYindicator.innerHTML = e.target.value;
+        renderEverything();
+      });
+    });
+
+    const rangeZoom = document.getElementById("rangeZoom");
+    rangeZoom.value = 0;
+    const zoomindicator = document.getElementById("zoomindicator");
+    document.addEventListener("DOMContentLoaded", () => {
+      rangeZoom.addEventListener("input", (e) => {
+        zoomindicator.innerHTML = e.target.value;
+        renderEverything();
+      });
+    });
+
+    //function to convert degrees to radians
+    const degToRad = (deg) => (deg * Math.PI) / 180;
+
+    //class to draw everything on the canvas based on its center
+    class CenterCanvas {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = this.canvas.getContext("2d");
+        this.width = this.canvas.width;
+        this.height = this.canvas.height;
+      }
+
+      projectPoint = ({ x, y, z }, aZ, aXY) => {
+        const aZRad = degToRad(aZ);
+        const aXYRad = degToRad(aXY);
+        const zoom = document.getElementById("rangeZoom").value;
+        const sX = (Math.cos(aZRad) * x - Math.sin(aZRad) * y) * zoom;
+        const sY =
+          (Math.sin(aXYRad) * (Math.cos(aZRad) * y + Math.sin(aZRad) * x) +
+            Math.cos(aXYRad) * z) *
+          zoom;
+        return { sX, sY };
+      };
+
+      renderPoint = ({ sX, sY }) => {
+        this.ctx.beginPath();
+        this.ctx.arc(
+          this.width / 2 + sX,
+          this.height / 2 - sY,
+          5,
+          0,
+          2 * Math.PI
+        );
+        this.ctx.fillStyle = "red";
+        this.ctx.fill();
+      };
+
+      renderPolygon = (points, aZ, aXY, color) => {
+        this.ctx.beginPath();
+        this.ctx.moveTo(
+          this.width / 2 + this.projectPoint(points[0], aZ, aXY).sX,
+          this.height / 2 - this.projectPoint(points[0], aZ, aXY).sY
+        );
+        points.forEach((point) =>
+          this.ctx.lineTo(
+            this.width / 2 + this.projectPoint(point, aZ, aXY).sX,
+            this.height / 2 - this.projectPoint(point, aZ, aXY).sY
+          )
+        );
+        this.ctx.closePath();
+        this.ctx.fillStyle = color || "rgba(255,0,0,0.1)";
+        this.ctx.fill();
+      };
+    }
+
+    const canvas = document.getElementById("canvas");
+    const centerCanvas = new CenterCanvas(canvas);
+
+    const A = { x: -200, y: -150, z: 0 };
+    const B = { x: 200, y: -150, z: 0 };
+    const C = { x: 200, y: 150, z: 0 };
+    const D = { x: -200, y: 150, z: 0 };
+    const E = { x: -200, y: -150, z: 100 };
+    const F = { x: 200, y: -150, z: 100 };
+    const G = { x: 200, y: 150, z: 100 };
+    const H = { x: -200, y: 150, z: 100 };
+
+    const iA = { x: -200, y: -150, z: 0 };
+    const iB = { x: -100, y: -150, z: 0 };
+    const iC = { x: -100, y: 0, z: 0 };
+    const iD = { x: -200, y: 0, z: 0 };
+    const iE = { x: -200, y: -150, z: 50 };
+    const iF = { x: -100, y: -150, z: 50 };
+    const iG = { x: -100, y: 0, z: 50 };
+    const iH = { x: -200, y: 0, z: 50 };
+
+    const points = [
+      { x: 200, y: 150, z: 0 },
+      { x: 200, y: 150, z: 100 },
+      { x: -200, y: 150, z: 0 },
+      { x: -200, y: 150, z: 100 },
+      { x: -200, y: -150, z: 0 },
+      { x: -200, y: -150, z: 100 },
+      { x: 200, y: -150, z: 0 },
+      { x: 200, y: -150, z: 100 },
+    ];
+
+    points.forEach((point) =>
+      centerCanvas.renderPoint(centerCanvas.projectPoint(point, 0, 0))
+    );
+
+    const renderEverything = () => {
+      centerCanvas.ctx.clearRect(0, 0, centerCanvas.width, centerCanvas.height);
+      points.forEach((point) =>
+        centerCanvas.renderPoint(
+          centerCanvas.projectPoint(
+            point,
+            rangeAngleZ.value,
+            rangeAngleXY.value
+          )
+        )
+      );
+      const aZ = document.getElementById("rangeAngleZ").value;
+      const aXY = document.getElementById("rangeAngleXY").value;
+      centerCanvas.renderPolygon([A, B, C, D], aZ, aXY, "rgba(100,100,255,1)");
+      centerCanvas.renderPolygon([B, C, G, F], aZ, aXY, "rgba(0,0,255,1)");
+      centerCanvas.renderPolygon([A, B, F, E], aZ, aXY, "rgba(50,50,255,1)");
+      centerCanvas.renderPolygon([C, D, H, G], aZ, aXY, "rgba(50,50,255,1)");
+      centerCanvas.renderPolygon([D, A, E, H], aZ, aXY, "rgba(0,0,255,1)");
+
+      centerCanvas.renderPolygon([iB, iC, iG, iF], aZ, aXY, "rgba(255,0,0,1)");
+      centerCanvas.renderPolygon(
+        [iA, iB, iF, iE],
+        aZ,
+        aXY,
+        "rgba(255,50,50,1)"
+      );
+      centerCanvas.renderPolygon(
+        [iC, iD, iH, iG],
+        aZ,
+        aXY,
+        "rgba(255,50,50,1)"
+      );
+      centerCanvas.renderPolygon(
+        [iE, iF, iG, iH],
+        aZ,
+        aXY,
+        "rgba(255,100,100,1)"
+      );
+      centerCanvas.renderPolygon([iD, iA, iE, iH], aZ, aXY, "rgba(255,0,0,1)");
+    };
+  </script>
+</html>
