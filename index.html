@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-200 text-xs lg:text-md">
+    <div
+      class="bg-white w-full h-[15vh] flex justify-center items-center shadow-2xl shadow-gray-400"
+    >
+      <h1 class="text-4xl">Kapazitätsrecher</h1>
+    </div>
+    <div
+      class="w-full h-[85vh] grid grid-cols-1 lg:grid-cols-2 grid-rows-3 px-5 md:px-48 py-3 md:py-24 gap-6 md:grid-cols-1"
+    >
+      <div class="bg-white rounded-xl shadow-xl shadow-gray-400 p-5 z-50">
+        <div class="mt-2 flex flex-wrap">
+          <h2 class="text-2xl font-bold">Eingabe</h2>
+          <div class="mt-3 w-full">
+            <label for="container" class="font-bold">Behälter:</label><br />
+            <select
+              name="container"
+              id="container"
+              class="border-2 border-gray-300 rounded-md"
+              onchange="setContainerDimensions()"
+            >
+              <option value="1">benutzerdefiniert</option>
+              <option value="2">GLT/ Gitterbox</option>
+              <option value="3">KLT groß</option>
+              <option value="4">KLT mittel</option>
+              <option value="5">KLT klein</option>
+              <option value="6">Greifbehälter</option>
+            </select>
+            <label for="containerLength">Länge: </label>
+            <input
+              type="number"
+              name="containerLength"
+              id="containerLength"
+              class="border-2 border-gray-300 rounded-md w-1/12"
+            />
+            <label for="containerWidth">Breite: </label>
+            <input
+              type="number"
+              name="containerWidth"
+              id="containerWidth"
+              class="border-2 border-gray-300 rounded-md w-1/12"
+            />
+            <label for="containerHeight">Höhe: </label>
+            <input
+              type="number"
+              name="containerHeight"
+              id="containerHeight"
+              class="border-2 border-gray-300 rounded-md w-1/12"
+            /><br />
+          </div>
+          <div class="mt-3 w-2/3">
+            <label for="item" class="font-bold">Teil:</label><br />
+            <label for="itemLength">Länge: </label>
+            <input
+              type="number"
+              name="itemLength"
+              id="itemLength"
+              class="border-2 border-gray-300 rounded-md w-[calc(100%/8)]"
+            />
+            <label for="itemWidth">Breite: </label>
+            <input
+              type="number"
+              name="itemWidth"
+              id="itemWidth"
+              class="border-2 border-gray-300 rounded-md w-[calc(100%/8)]"
+            />
+            <label for="itemHeight">Höhe: </label>
+            <input
+              type="number"
+              name="itemHeight"
+              id="itemHeight"
+              class="border-2 border-gray-300 rounded-md w-[calc(100%/8)]"
+            />
+          </div>
+          <div class="w-1/3 flex justify-end items-end p-3">
+            <button
+              class="p-1 bg-gray-600 text-white rounded-md shadow-md shadow-gray-400"
+              onclick="calculate()"
+            >
+              berechnen
+            </button>
+          </div>
+        </div>
+      </div>
+      <div
+        class="bg-white hidden md:block rounded-xl shadow-xl shadow-gray-400 p-5 row-span-3 z-50"
+      >
+        <h2 class="text-2xl font-bold">Verlauf</h2>
+      </div>
+      <div
+        class="bg-white rounded-xl shadow-xl shadow-gray-400 p-5 row-span-2 z-50"
+      >
+        <h2 class="text-2xl font-bold">Ergebnis</h2>
+        <div id="result"></div>
+        <canvas class="w-full h-2/3" width="2000px" height="1000px">
+          <!-- a trapezoid -->
+          <polygon />
+        </canvas>
+        <!-- whenever the range slider is moved, set the innerhtml value of zommlevelindicator to the new value -->
+        <input
+          type="range"
+          name="zoomlevel"
+          id="canvasZooomlevel"
+          value="1000"
+          min="100"
+          max="2000"
+        />
+        <div id="zoomlevelIndicator"></div>
+      </div>
+    </div>
+  </body>
+</html>
+
+<script>
+  // Get the slider and the zoom level indicator elements
+  let slider = document.getElementById("canvasZooomlevel");
+  let zoomLevelIndicator = document.getElementById("zoomlevelIndicator");
+
+  // Add an event listener to the slider for the input event
+  slider.addEventListener("input", function () {
+    // Update the zoom level indicator's innerHTML with the slider's current value
+    zoomLevelIndicator.innerHTML = this.value;
+    calculate();
+  });
+
+  const drawTrapezoid = (ctx, canvas, color, corners) => {
+    ctx.beginPath();
+    ctx.moveTo(corners[0][0] * canvas.width, corners[0][1] * canvas.height);
+    ctx.lineTo(corners[1][0] * canvas.width, corners[1][1] * canvas.height);
+    ctx.lineTo(corners[2][0] * canvas.width, corners[2][1] * canvas.height);
+    ctx.lineTo(corners[3][0] * canvas.width, corners[3][1] * canvas.height);
+    ctx.closePath();
+    //fill blue
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.stroke();
+  };
+
+  const degToRad = (deg) => {
+    return (deg * Math.PI) / 180;
+  };
+
+  const drawContainer = ([aFrac, bFrac, cFrac], [cLength, cWidth, cHeight]) => {
+    const canvas = document.querySelector("canvas");
+    const ctx = canvas.getContext("2d");
+
+    //clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    //get canvas width and height
+    const width = canvas.width;
+    const height = canvas.height;
+
+    const canvasAspectRatio =
+      document.querySelector("canvas").offsetHeight /
+      document.querySelector("canvas").offsetWidth;
+
+    console.log(canvasAspectRatio);
+
+    const angleW = 25;
+    const angleH = 10;
+
+    const base = document.getElementById("canvasZooomlevel").value;
+
+    const zoom = 0.4;
+
+    const w = (cLength / base) * zoom;
+    const ws = (cWidth / base) * zoom * Math.sin(degToRad(angleW));
+    const h =
+      (((cHeight / base) * zoom) / canvasAspectRatio) *
+      Math.cos(degToRad(angleH));
+    const hs =
+      (((cWidth / base) * zoom) / canvasAspectRatio) *
+      Math.sin(degToRad(angleH));
+
+    const containerPoints = {
+      ca: [0.5 - 0.5 * w - 0.5 * ws, 0.5 + 0.5 * h + 0.5 * hs],
+      cb: [0.5 + 0.5 * w - 0.5 * ws, 0.5 + 0.5 * h + 0.5 * hs],
+      cc: [0.5 + 0.5 * w - 0.5 * ws, 0.5 - 0.5 * h + 0.5 * hs],
+      cd: [0.5 + 0.5 * w + 0.5 * ws, 0.5 + 0.5 * h - 0.5 * hs],
+      ce: [0.5 + 0.5 * w + 0.5 * ws, 0.5 - 0.5 * h - 0.5 * hs],
+      cf: [0.5 - 0.5 * w + 0.5 * ws, 0.5 - 0.5 * h - 0.5 * hs],
+      cg: [0.5 - 0.5 * w + 0.5 * ws, 0.5 + 0.5 * h - 0.5 * hs],
+      ch: [0.5 - 0.5 * w - 0.5 * ws, 0.5 - 0.5 * h + 0.5 * hs],
+    };
+
+    // const wi = 0.5;
+    // const hi = 0.5;
+    // const di = 0.50;
+    const wi = aFrac;
+    const di = bFrac;
+    const hi = cFrac;
+
+    console.log(wi, hi, di);
+
+    const itemPoints = {
+      ia: [0.5 - 0.5 * w - 0.5 * ws, 0.5 + 0.5 * h + 0.5 * hs],
+      ib: [0.5 - (0.5 - wi) * w - 0.5 * ws, 0.5 + 0.5 * h + 0.5 * hs],
+      ic: [0.5 - (0.5 - wi) * w - 0.5 * ws, 0.5 + (0.5 - hi) * h + 0.5 * hs],
+      id: [
+        0.5 - (0.5 - wi) * w - (0.5 - di) * ws,
+        0.5 + 0.5 * h + (0.5 - di) * hs,
+      ],
+      ie: [
+        0.5 - (0.5 - wi) * w - (0.5 - di) * ws,
+        0.5 + (0.5 - hi) * h + (0.5 - di) * hs,
+      ],
+      iF: [
+        0.5 - 0.5 * w - (0.5 - di) * ws,
+        0.5 + (0.5 - hi) * h + (0.5 - di) * hs,
+      ],
+      ig: [0.5 - 0.5 * w - (0.5 - di) * ws, 0.5 + 0.5 * h + (0.5 - di) * hs],
+      ih: [0.5 - 0.5 * w - 0.5 * ws, 0.5 + (0.5 - hi) * h + 0.5 * hs],
+    };
+
+    const { ca, cb, cc, cd, ce, cf, cg, ch } = containerPoints;
+
+    const { ia, ib, ic, id, ie, iF, ig, ih } = itemPoints;
+
+    drawTrapezoid(ctx, canvas, "rgba(200, 200, 255, 1)", [ca, cb, cd, cg]);
+    drawTrapezoid(ctx, canvas, "rgba(100, 100, 200, 1)", [cg, cd, ce, cf]);
+    drawTrapezoid(ctx, canvas, "rgba(60, 60, 180, 1)", [ca, cg, cf, ch]);
+    drawTrapezoid(ctx, canvas, "rgba(255, 0, 0, 1)", [ib, id, ie, ic]);
+    drawTrapezoid(ctx, canvas, "rgba(255, 25, 25, 1)", [ia, ib, ic, ih]);
+    drawTrapezoid(ctx, canvas, "rgba(255, 100, 100, 1)", [ih, ic, ie, iF]);
+    drawTrapezoid(ctx, canvas, "rgba(60, 60, 180, 0.5)", [cb, cd, ce, cc]);
+    drawTrapezoid(ctx, canvas, "rgba(100, 100, 200, 0.5)", [ca, cb, cc, ch]);
+  };
+
+  // drawContainer();
+
+  const setContainerDimensions = () => {
+    const container = document.getElementById("container");
+    const containerLength = document.getElementById("containerLength");
+    const containerWidth = document.getElementById("containerWidth");
+    const containerHeight = document.getElementById("containerHeight");
+
+    if (container.value === "1") {
+      containerLength.disabled = false;
+      containerWidth.disabled = false;
+      containerHeight.disabled = false;
+    } else {
+      containerLength.disabled = true;
+      containerWidth.disabled = true;
+      containerHeight.disabled = true;
+    }
+
+    switch (container.value) {
+      case "1":
+        containerLength.value = 0;
+        containerWidth.value = 0;
+        containerHeight.value = 0;
+        break;
+      case "2":
+        containerLength.value = 1200;
+        containerWidth.value = 800;
+        containerHeight.value = 800;
+        break;
+      case "3":
+        containerLength.value = 544;
+        containerWidth.value = 364;
+        containerHeight.value = 242;
+        break;
+      case "4":
+        containerLength.value = 346;
+        containerWidth.value = 265;
+        containerHeight.value = 110;
+        break;
+      case "5":
+        containerLength.value = 243;
+        containerWidth.value = 162;
+        containerHeight.value = 129;
+        break;
+      case "6":
+        containerLength.value = 137;
+        containerWidth.value = 63;
+        containerHeight.value = 89;
+        break;
+    }
+  };
+
+  setContainerDimensions();
+
+  const calcMaxFit = (container, item) => {
+    const arrangements = [
+      [0, 1, 2],
+      [0, 2, 1],
+      [1, 0, 2],
+      [1, 2, 0],
+      [2, 0, 1],
+      [2, 1, 0],
+    ];
+
+    const counts = [];
+    for (let i in arrangements) {
+      const fit = {};
+      fit.description = `
+        box     |objekt
+        ________|_______
+        ${container[0]}     |${item[arrangements[i][0]]}
+        ${container[1]}     |${item[arrangements[i][1]]}
+        ${container[2]}     |${item[arrangements[i][2]]}
+    `;
+      fit.a = {};
+      fit.a.calculation = `${container[0]} / ${
+        item[arrangements[i][0]]
+      } = ${Math.floor(container[0] / item[arrangements[i][0]])}, Rest: ${
+        container[0] % item[arrangements[i][0]]
+      }`;
+      fit.a.value = Math.floor(container[0] / item[arrangements[i][0]]);
+      fit.a.fraction = item[arrangements[i][0]] / container[0];
+      fit.b = {};
+      fit.b.calculation = `${container[1]} / ${
+        item[arrangements[i][1]]
+      } = ${Math.floor(container[1] / item[arrangements[i][1]])}, Rest: ${
+        container[1] % item[arrangements[i][1]]
+      }`;
+      fit.b.value = Math.floor(container[1] / item[arrangements[i][1]]);
+      fit.b.fraction = item[arrangements[i][1]] / container[1];
+      fit.c = {};
+      fit.c.calculation = `${container[2]} / ${
+        item[arrangements[i][2]]
+      } = ${Math.floor(container[2] / item[arrangements[i][2]])}, Rest: ${
+        container[2] % item[arrangements[i][2]]
+      }`;
+      fit.c.value = Math.floor(container[2] / item[arrangements[i][2]]);
+      fit.c.fraction = item[arrangements[i][2]] / container[2];
+      fit.total = fit.a.value * fit.b.value * fit.c.value;
+      counts.push(fit);
+    }
+
+    const max = counts.reduce((prev, current) =>
+      prev.total > current.total ? prev : current
+    );
+
+    return { counts, max, container };
+  };
+
+  const showResult = (max, container) => {
+    const result = document.getElementById("result");
+    result.innerHTML = `
+      <p>maximale Anzahl: ${max.total}</p>
+    `;
+    console.log(container);
+    drawContainer([max.a.fraction, max.b.fraction, max.c.fraction], container);
+  };
+
+  const calculate = () => {
+    const container = [
+      document.getElementById("containerLength").value,
+      document.getElementById("containerWidth").value,
+      document.getElementById("containerHeight").value,
+    ];
+    const item = [
+      document.getElementById("itemLength").value,
+      document.getElementById("itemWidth").value,
+      document.getElementById("itemHeight").value,
+    ];
+
+    showResult(
+      calcMaxFit(container, item).max,
+      calcMaxFit(container, item).container
+    );
+  };
+</script>
