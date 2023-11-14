@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      canvas:focus {
+        outline: none;
+      }
+    </style>
   </head>
   <body class="bg-gray-200 text-xs lg:text-md">
     <div
@@ -13,10 +22,12 @@
       <h1 class="text-4xl">Kapazitätsrecher</h1>
     </div>
     <div
-      class="w-full h-[85vh] grid grid-cols-1 lg:grid-cols-2 grid-rows-3 px-5 md:px-48 py-3 md:py-10 gap-6 md:grid-cols-1"
+      class="w-full h-[85vh] grid grid-cols-1 lg:grid-cols-2 grid-rows-5 px-5 md:px-48 py-3 md:py-10 gap-6 md:grid-cols-1"
     >
-      <div class="bg-white rounded-xl shadow-xl shadow-gray-400 p-5 z-50">
-        <div class="mt-2 flex flex-wrap">
+      <div
+        class="bg-white rounded-xl shadow-xl shadow-gray-400 p-5 z-50 row-span-2"
+      >
+        <div class="mt-2 flex flex-wrap relative">
           <h2 class="text-2xl font-bold">Eingabe</h2>
           <div class="mt-3 w-full">
             <label for="container" class="font-bold">Behälter:</label><br />
@@ -39,7 +50,7 @@
               type="number"
               name="containerLength"
               id="containerLength"
-              class="border-2 border-gray-300 rounded-md w-1/12"
+              class="border-2 border-gray-300 rounded-md w-[10%]"
               value="0"
             />
             <label for="containerWidth">Breite: </label>
@@ -47,7 +58,7 @@
               type="number"
               name="containerWidth"
               id="containerWidth"
-              class="border-2 border-gray-300 rounded-md w-1/12"
+              class="border-2 border-gray-300 rounded-md w-[10%]"
               value="0"
             />
             <label for="containerHeight">Höhe: </label>
@@ -55,7 +66,7 @@
               type="number"
               name="containerHeight"
               id="containerHeight"
-              class="border-2 border-gray-300 rounded-md w-1/12"
+              class="border-2 border-gray-300 rounded-md w-[10%]"
               value="0"
             /><br />
           </div>
@@ -67,7 +78,8 @@
               id="itemTitleInput"
               class="border-2 border-gray-300 rounded-md w-[calc(100%/2)]"
             />
-            <br />
+          </div>
+          <div class="mt-3 w-2/3">
             <label for="itemLength">Länge: </label>
             <input
               type="number"
@@ -97,7 +109,7 @@
             <label for="upright">aufrecht</label>
             <input type="checkbox" name="upright" id="upright" />
           </div>
-          <div class="w-1/3 flex justify-end items-end p-3">
+          <div class="absolute right-3 bottom-0">
             <button
               class="p-1 bg-gray-600 text-white rounded-md shadow-md shadow-gray-400"
               onclick="recalculate()"
@@ -108,48 +120,66 @@
         </div>
       </div>
       <div
+        class="bg-white rounded-xl shadow-xl shadow-gray-400 p-5 row-span-5 z-50"
+      >
+        <h2 class="text-2xl font-bold">Ergebnis</h2>
+        <div id="result"></div>
+        <div class="w-full aspect-square border border-black">
+          <canvas
+            id="canvas"
+            class="w-full h-full border-none"
+            width="1600px"
+            height="1600px"
+          ></canvas>
+        </div>
+        <div class="w-full flex">
+          <div class="w-1/3 flex justify-center flex-wrap p-3">
+            <label for="angleZ" class="w-full text-center"
+              >Horizontaler Winkel</label
+            >
+            <input
+              class="w-full"
+              type="range"
+              name="angleZ"
+              id="rangeAngleZ"
+              min="0"
+              max="180"
+            />
+            <div id="angleZindicator">0</div>
+          </div>
+          <div class="w-1/3 flex justify-center flex-wrap p-3">
+            <label for="angleXY" class="w-full text-center"
+              >Vertikaler Winkel</label
+            >
+            <input
+              class="w-full"
+              type="range"
+              name="angleXY"
+              id="rangeAngleXY"
+              min="0"
+              max="90"
+            />
+            <div id="angleXYindicator">0</div>
+          </div>
+          <div class="w-1/3 flex justify-center flex-wrap p-3">
+            <label for="zoom" class="w-full text-center">Zoom</label>
+            <input
+              class="w-full"
+              type="range"
+              name="zoom"
+              id="rangeZoom"
+              min="8"
+              max="30"
+            />
+            <div id="zoomlevelIndicator">0</div>
+          </div>
+        </div>
+      </div>
+      <div
         class="bg-white hidden rounded-xl shadow-xl shadow-gray-400 p-5 row-span-3 z-50 md:flex flex-col"
       >
         <h2 class="text-2xl font-bold flex-none h-max">Verlauf</h2>
         <div class="m-5 grow overflow-y-scroll" id="historyDisplay"></div>
-      </div>
-      <div
-        class="bg-white rounded-xl shadow-xl shadow-gray-400 p-5 row-span-2 z-50"
-      >
-        <h2 class="text-2xl font-bold">Ergebnis</h2>
-        <div id="result"></div>
-        <div class="w-2/3 aspect-video border border-black">
-          <canvas
-            id="canvas"
-            class="w-full h-full"
-            width="1600px"
-            height="900px"
-          ></canvas>
-        </div>
-        <div>
-          <input
-            type="range"
-            name="angleZ"
-            id="rangeAngleZ"
-            min="0"
-            max="180"
-          />
-          <div id="angleZindicator">0</div>
-        </div>
-        <div>
-          <input
-            type="range"
-            name="angleXY"
-            id="rangeAngleXY"
-            min="0"
-            max="90"
-          />
-          <div id="angleXYindicator">0</div>
-        </div>
-        <div>
-          <input type="range" name="zoom" id="rangeZoom" min="1" max="100" />
-          <div id="zoomlevelIndicator">0</div>
-        </div>
       </div>
     </div>
   </body>
