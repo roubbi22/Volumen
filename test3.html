@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-200 text-xs lg:text-md">
+    <div
+      class="bg-white w-full h-[15vh] flex justify-center items-center shadow-2xl shadow-gray-400"
+    >
+      <h1 class="text-4xl">Kapazitätsrecher</h1>
+    </div>
+    <div
+      class="w-full h-[85vh] grid grid-cols-1 lg:grid-cols-2 grid-rows-3 px-5 md:px-48 py-3 md:py-10 gap-6 md:grid-cols-1"
+    >
+      <div class="bg-white rounded-xl shadow-xl shadow-gray-400 p-5 z-50">
+        <div class="mt-2 flex flex-wrap">
+          <h2 class="text-2xl font-bold">Eingabe</h2>
+          <div class="mt-3 w-full">
+            <label for="container" class="font-bold">Behälter:</label><br />
+            <select
+              name="container"
+              id="container"
+              class="border-2 border-gray-300 rounded-md"
+              onchange="setContainerDimensions()"
+            >
+              <option value="1">benutzerdefiniert</option>
+              <option value="2">GLT/ Gitterbox</option>
+              <option value="3">KLT groß</option>
+              <option value="4">KLT mittel</option>
+              <option value="5">KLT klein</option>
+              <option value="6">Greifbehälter</option>
+              <option value="7">Palette</option>
+            </select>
+            <label for="containerLength">Länge: </label>
+            <input
+              type="number"
+              name="containerLength"
+              id="containerLength"
+              class="border-2 border-gray-300 rounded-md w-1/12"
+              value="0"
+            />
+            <label for="containerWidth">Breite: </label>
+            <input
+              type="number"
+              name="containerWidth"
+              id="containerWidth"
+              class="border-2 border-gray-300 rounded-md w-1/12"
+              value="0"
+            />
+            <label for="containerHeight">Höhe: </label>
+            <input
+              type="number"
+              name="containerHeight"
+              id="containerHeight"
+              class="border-2 border-gray-300 rounded-md w-1/12"
+              value="0"
+            /><br />
+          </div>
+          <div class="mt-3 w-2/3">
+            <label for="item" class="font-bold">Teil:</label>
+            <input
+              type="text"
+              name="part"
+              id="itemTitleInput"
+              class="border-2 border-gray-300 rounded-md w-[calc(100%/2)]"
+            />
+            <br />
+            <label for="itemLength">Länge: </label>
+            <input
+              type="number"
+              name="itemLength"
+              id="itemLength"
+              class="border-2 border-gray-300 rounded-md w-[calc(100%/8)]"
+              value="0"
+            />
+            <label for="itemWidth">Breite: </label>
+            <input
+              type="number"
+              name="itemWidth"
+              id="itemWidth"
+              class="border-2 border-gray-300 rounded-md w-[calc(100%/8)]"
+              value="0"
+            />
+            <label for="itemHeight">Höhe: </label>
+            <input
+              type="number"
+              name="itemHeight"
+              id="itemHeight"
+              class="border-2 border-gray-300 rounded-md w-[calc(100%/8)]"
+              value="0"
+            />
+          </div>
+          <div class="mt-3 w-2/3">
+            <label for="upright">aufrecht</label>
+            <input type="checkbox" name="upright" id="upright" />
+          </div>
+          <div class="w-1/3 flex justify-end items-end p-3">
+            <button
+              class="p-1 bg-gray-600 text-white rounded-md shadow-md shadow-gray-400"
+              onclick="recalculate()"
+            >
+              berechnen
+            </button>
+          </div>
+        </div>
+      </div>
+      <div
+        class="bg-white hidden md:block rounded-xl shadow-xl shadow-gray-400 p-5 row-span-3 z-50"
+      >
+        <h2 class="text-2xl font-bold">Verlauf</h2>
+        <div class="m-5" id="historyDisplay"></div>
+      </div>
+      <div
+        class="bg-white rounded-xl shadow-xl shadow-gray-400 p-5 row-span-2 z-50"
+      >
+        <h2 class="text-2xl font-bold">Ergebnis</h2>
+        <div id="result"></div>
+        <div class="w-2/3 aspect-video border border-black">
+          <canvas
+            id="canvas"
+            class="w-full h-full"
+            width="1600px"
+            height="900px"
+          ></canvas>
+        </div>
+        <div>
+          <input
+            type="range"
+            name="angleZ"
+            id="rangeAngleZ"
+            min="0"
+            max="180"
+          />
+          <div id="angleZindicator">0</div>
+        </div>
+        <div>
+          <input
+            type="range"
+            name="angleXY"
+            id="rangeAngleXY"
+            min="0"
+            max="90"
+          />
+          <div id="angleXYindicator">0</div>
+        </div>
+        <div>
+          <input type="range" name="zoom" id="rangeZoom" min="1" max="100" />
+          <div id="zoomlevelIndicator">0</div>
+        </div>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    const history = [];
+
+    const rangeAngleZ = document.getElementById("rangeAngleZ");
+    rangeAngleZ.value = 0;
+    const angleZindicator = document.getElementById("angleZindicator");
+    document.addEventListener("DOMContentLoaded", () => {
+      rangeAngleZ.addEventListener("input", (e) => {
+        angleZindicator.innerHTML = e.target.value;
+        calculate();
+      });
+    });
+
+    const rangeAngleXY = document.getElementById("rangeAngleXY");
+    rangeAngleXY.value = 0;
+    const angleXYindicator = document.getElementById("angleXYindicator");
+    document.addEventListener("DOMContentLoaded", () => {
+      rangeAngleXY.addEventListener("input", (e) => {
+        angleXYindicator.innerHTML = e.target.value;
+        calculate();
+      });
+    });
+
+    const rangeZoom = document.getElementById("rangeZoom");
+    rangeZoom.value = 0;
+    const zoomindicator = document.getElementById("zoomlevelIndicator");
+    document.addEventListener("DOMContentLoaded", () => {
+      rangeZoom.addEventListener("input", (e) => {
+        zoomindicator.innerHTML = e.target.value;
+        calculate();
+      });
+    });
+
+    // let useAarrangements = [
+    //   [0, 1, 2],
+    //   [0, 2, 1],
+    //   [1, 0, 2],
+    //   [1, 2, 0],
+    //   [2, 0, 1],
+    //   [2, 1, 0],
+    // ];
+
+    // const uprightCheckbox = document.getElementById("upright");
+    // document.addEventListener("DOMContentLoaded", () => {
+    //   uprightCheckbox.addEventListener("change", (e) => {
+    //     console.log(e.target.checked);
+    //     if (e.target.checked) {
+    //       useArrangements = [
+    //         [0, 1, 2],
+    //         [1, 0, 2],
+    //       ];
+    //     } else {
+    //       useArrangements = [
+    //         [0, 1, 2],
+    //         [0, 2, 1],
+    //         [1, 0, 2],
+    //         [1, 2, 0],
+    //         [2, 0, 1],
+    //         [2, 1, 0],
+    //       ];
+    //     }
+    //     console.log(useArrangements, uprightCheckbox.checked);
+    //   });
+    // });
+
+    //function to convert degrees to radians
+    const degToRad = (deg) => (deg * Math.PI) / 180;
+
+    //class to draw everything on the canvas based on its center
+    class CenterCanvas {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = this.canvas.getContext("2d");
+        this.width = this.canvas.width;
+        this.height = this.canvas.height;
+      }
+
+      projectPoint = ({ x, y, z }, aZ, aXY) => {
+        const aZRad = degToRad(aZ);
+        const aXYRad = degToRad(aXY);
+        const zoom = document.getElementById("rangeZoom").value / 10;
+        const sX = (Math.cos(aZRad) * x - Math.sin(aZRad) * y) * zoom;
+        const sY =
+          (Math.sin(aXYRad) * (Math.cos(aZRad) * y + Math.sin(aZRad) * x) +
+            Math.cos(aXYRad) * z) *
+          zoom;
+        return { sX, sY };
+      };
+
+      renderPoint = ({ sX, sY }) => {
+        this.ctx.beginPath();
+        this.ctx.arc(
+          this.width / 2 + sX,
+          this.height / 2 - sY,
+          5,
+          0,
+          2 * Math.PI
+        );
+        this.ctx.fillStyle = "red";
+        this.ctx.fill();
+      };
+
+      renderPolygon = (points, aZ, aXY, color) => {
+        this.ctx.beginPath();
+        this.ctx.moveTo(
+          this.width / 2 + this.projectPoint(points[0], aZ, aXY).sX,
+          this.height / 2 - this.projectPoint(points[0], aZ, aXY).sY
+        );
+        points.forEach((point) =>
+          this.ctx.lineTo(
+            this.width / 2 + this.projectPoint(point, aZ, aXY).sX,
+            this.height / 2 - this.projectPoint(point, aZ, aXY).sY
+          )
+        );
+        this.ctx.closePath();
+        this.ctx.fillStyle = color || "rgba(255,0,0,0.1)";
+        this.ctx.fill();
+      };
+    }
+
+    const canvas = document.getElementById("canvas");
+    const centerCanvas = new CenterCanvas(canvas);
+
+    const A = { x: -200, y: -150, z: 0 };
+    const B = { x: 200, y: -150, z: 0 };
+    const C = { x: 200, y: 150, z: 0 };
+    const D = { x: -200, y: 150, z: 0 };
+    const E = { x: -200, y: -150, z: 100 };
+    const F = { x: 200, y: -150, z: 100 };
+    const G = { x: 200, y: 150, z: 100 };
+    const H = { x: -200, y: 150, z: 100 };
+
+    const iA = { x: -200, y: -150, z: 0 };
+    const iB = { x: -100, y: -150, z: 0 };
+    const iC = { x: -100, y: 0, z: 0 };
+    const iD = { x: -200, y: 0, z: 0 };
+    const iE = { x: -200, y: -150, z: 50 };
+    const iF = { x: -100, y: -150, z: 50 };
+    const iG = { x: -100, y: 0, z: 50 };
+    const iH = { x: -200, y: 0, z: 50 };
+
+    const renderEverything = (containerCoordinates, itemCoordinates) => {
+      const { A, B, C, D, E, F, G, H } = containerCoordinates;
+      const { iA, iB, iC, iD, iE, iF, iG, iH } = itemCoordinates;
+      centerCanvas.ctx.clearRect(0, 0, centerCanvas.width, centerCanvas.height);
+      const aZ = document.getElementById("rangeAngleZ").value;
+      const aXY = document.getElementById("rangeAngleXY").value;
+      centerCanvas.renderPolygon([A, B, C, D], aZ, aXY, "rgba(100,100,255,1)");
+      centerCanvas.renderPolygon([B, C, G, F], aZ, aXY, "rgba(0,0,255,1)");
+      centerCanvas.renderPolygon([A, B, F, E], aZ, aXY, "rgba(50,50,255,1)");
+      centerCanvas.renderPolygon([C, D, H, G], aZ, aXY, "rgba(50,50,255,1)");
+      centerCanvas.renderPolygon([D, A, E, H], aZ, aXY, "rgba(0,0,255,1)");
+
+      centerCanvas.renderPolygon([iB, iC, iG, iF], aZ, aXY, "rgba(255,0,0,1)");
+      centerCanvas.renderPolygon(
+        [iA, iB, iF, iE],
+        aZ,
+        aXY,
+        "rgba(255,50,50,1)"
+      );
+      centerCanvas.renderPolygon(
+        [iC, iD, iH, iG],
+        aZ,
+        aXY,
+        "rgba(255,50,50,1)"
+      );
+      centerCanvas.renderPolygon(
+        [iE, iF, iG, iH],
+        aZ,
+        aXY,
+        "rgba(255,100,100,1)"
+      );
+      centerCanvas.renderPolygon([iD, iA, iE, iH], aZ, aXY, "rgba(255,0,0,1)");
+    };
+
+    //__________________________________________________________________________________________________
+    // Get the slider and the zoom level indicator elements
+    let slider = document.getElementById("rangeZoom");
+    let zoomLevelIndicator = document.getElementById("zoomlevelIndicator");
+    zoomLevelIndicator.innerHTML = slider.value;
+
+    //  let hTiltSlider = document.getElementById("canvasHTiltlevel");
+    //  let hTiltLevelIndicator = document.getElementById("hTiltlevelIndicator");
+    //  hTiltLevelIndicator.innerHTML = hTiltSlider.value;
+
+    //  let wTiltSlider = document.getElementById("canvasWTiltlevel");
+    //  let wTiltLevelIndicator = document.getElementById("wTiltlevelIndicator");
+    //  wTiltLevelIndicator.innerHTML = wTiltSlider.value;
+
+    // Add an event listener to the slider for the input event
+    slider.addEventListener("input", function () {
+      // Update the zoom level indicator's innerHTML with the slider's current value
+      zoomLevelIndicator.innerHTML = this.value;
+      calculate();
+    });
+
+    //  hTiltSlider.addEventListener("input", function () {
+    //    // Update the zoom level indicator's innerHTML with the slider's current value
+    //    hTiltLevelIndicator.innerHTML = this.value;
+    //    calculate();
+    //  });
+
+    //  wTiltSlider.addEventListener("input", function () {
+    //    // Update the zoom level indicator's innerHTML with the slider's current value
+    //    wTiltLevelIndicator.innerHTML = this.value;
+    //    calculate();
+    //  });
+
+    const drawTrapezoid = (ctx, canvas, color, corners) => {
+      ctx.beginPath();
+      ctx.moveTo(corners[0][0] * canvas.width, corners[0][1] * canvas.height);
+      ctx.lineTo(corners[1][0] * canvas.width, corners[1][1] * canvas.height);
+      ctx.lineTo(corners[2][0] * canvas.width, corners[2][1] * canvas.height);
+      ctx.lineTo(corners[3][0] * canvas.width, corners[3][1] * canvas.height);
+      ctx.closePath();
+      //fill blue
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    };
+
+    const drawContainer = (
+      [aFrac, bFrac, cFrac],
+      [cLength, cWidth, cHeight]
+    ) => {
+      const canvas = document.querySelector("canvas");
+      const ctx = canvas.getContext("2d");
+
+      //clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      //get canvas width and height
+      const width = canvas.width;
+      const height = canvas.height;
+
+      const canvasAspectRatio =
+        document.querySelector("canvas").offsetHeight /
+        document.querySelector("canvas").offsetWidth;
+
+      const angleW = document.getElementById("canvasWTiltlevel").value;
+      const angleH = document.getElementById("canvasHTiltlevel").value;
+
+      const base = document.getElementById("canvasZooomlevel").value;
+
+      const zoom = 0.4;
+
+      const w = (cLength / base) * zoom * Math.cos(degToRad(angleW));
+      const ws = (cWidth / base) * zoom * Math.sin(degToRad(angleW));
+      const h =
+        (((cHeight / base) * zoom) / canvasAspectRatio) *
+        Math.cos(degToRad(angleH));
+      const hs =
+        (((cWidth / base) * zoom) / canvasAspectRatio) *
+        Math.sin(degToRad(angleH));
+
+      const containerPoints = {
+        ca: [0.5 - 0.5 * w - 0.5 * ws, 0.5 + 0.5 * h + 0.5 * hs],
+        cb: [0.5 + 0.5 * w - 0.5 * ws, 0.5 + 0.5 * h + 0.5 * hs],
+        cc: [0.5 + 0.5 * w - 0.5 * ws, 0.5 - 0.5 * h + 0.5 * hs],
+        cd: [0.5 + 0.5 * w + 0.5 * ws, 0.5 + 0.5 * h - 0.5 * hs],
+        ce: [0.5 + 0.5 * w + 0.5 * ws, 0.5 - 0.5 * h - 0.5 * hs],
+        cf: [0.5 - 0.5 * w + 0.5 * ws, 0.5 - 0.5 * h - 0.5 * hs],
+        cg: [0.5 - 0.5 * w + 0.5 * ws, 0.5 + 0.5 * h - 0.5 * hs],
+        ch: [0.5 - 0.5 * w - 0.5 * ws, 0.5 - 0.5 * h + 0.5 * hs],
+      };
+
+      // const wi = 0.5;
+      // const hi = 0.5;
+      // const di = 0.50;
+      const wi = aFrac;
+      const di = bFrac;
+      const hi = cFrac;
+
+      const itemPoints = {
+        ia: [0.5 - 0.5 * w - 0.5 * ws, 0.5 + 0.5 * h + 0.5 * hs],
+        ib: [0.5 - (0.5 - wi) * w - 0.5 * ws, 0.5 + 0.5 * h + 0.5 * hs],
+        ic: [0.5 - (0.5 - wi) * w - 0.5 * ws, 0.5 + (0.5 - hi) * h + 0.5 * hs],
+        id: [
+          0.5 - (0.5 - wi) * w - (0.5 - di) * ws,
+          0.5 + 0.5 * h + (0.5 - di) * hs,
+        ],
+        ie: [
+          0.5 - (0.5 - wi) * w - (0.5 - di) * ws,
+          0.5 + (0.5 - hi) * h + (0.5 - di) * hs,
+        ],
+        iF: [
+          0.5 - 0.5 * w - (0.5 - di) * ws,
+          0.5 + (0.5 - hi) * h + (0.5 - di) * hs,
+        ],
+        ig: [0.5 - 0.5 * w - (0.5 - di) * ws, 0.5 + 0.5 * h + (0.5 - di) * hs],
+        ih: [0.5 - 0.5 * w - 0.5 * ws, 0.5 + (0.5 - hi) * h + 0.5 * hs],
+      };
+
+      const { ca, cb, cc, cd, ce, cf, cg, ch } = containerPoints;
+
+      const { ia, ib, ic, id, ie, iF, ig, ih } = itemPoints;
+
+      drawTrapezoid(ctx, canvas, "rgba(200, 200, 255, 1)", [ca, cb, cd, cg]);
+      drawTrapezoid(ctx, canvas, "rgba(100, 100, 200, 1)", [cg, cd, ce, cf]);
+      drawTrapezoid(ctx, canvas, "rgba(60, 60, 180, 1)", [ca, cg, cf, ch]);
+      drawTrapezoid(ctx, canvas, "rgba(255, 0, 0, 1)", [ib, id, ie, ic]);
+      drawTrapezoid(ctx, canvas, "rgba(255, 25, 25, 1)", [ia, ib, ic, ih]);
+      drawTrapezoid(ctx, canvas, "rgba(255, 100, 100, 1)", [ih, ic, ie, iF]);
+      drawTrapezoid(ctx, canvas, "rgba(60, 60, 180, 0.5)", [cb, cd, ce, cc]);
+      drawTrapezoid(ctx, canvas, "rgba(100, 100, 200, 0.5)", [ca, cb, cc, ch]);
+    };
+
+    // drawContainer();
+
+    function setContainerDimensions() {
+      const container = document.getElementById("container");
+      const containerLength = document.getElementById("containerLength");
+      const containerWidth = document.getElementById("containerWidth");
+      const containerHeight = document.getElementById("containerHeight");
+
+      if (container.value === "1") {
+        containerLength.disabled = false;
+        containerWidth.disabled = false;
+        containerHeight.disabled = false;
+      } else {
+        containerLength.disabled = true;
+        containerWidth.disabled = true;
+        containerHeight.disabled = true;
+      }
+
+      switch (container.value) {
+        case "1":
+          containerLength.value = 0;
+          containerWidth.value = 0;
+          containerHeight.value = 0;
+          break;
+        case "2":
+          containerLength.value = 1200;
+          containerWidth.value = 800;
+          containerHeight.value = 800;
+          break;
+        case "3":
+          containerLength.value = 544;
+          containerWidth.value = 364;
+          containerHeight.value = 242;
+          break;
+        case "4":
+          containerLength.value = 346;
+          containerWidth.value = 265;
+          containerHeight.value = 110;
+          break;
+        case "5":
+          containerLength.value = 243;
+          containerWidth.value = 162;
+          containerHeight.value = 129;
+          break;
+        case "6":
+          containerLength.value = 137;
+          containerWidth.value = 63;
+          containerHeight.value = 89;
+          break;
+        case "7":
+          containerLength.value = 800;
+          containerWidth.value = 1200;
+          containerHeight.value = 900;
+          break;
+      }
+    }
+
+    setContainerDimensions();
+
+    const calcMaxFit = (container, item) => {
+      const uprightCheckbox = document.getElementById("upright");
+      const arrangements = uprightCheckbox.checked
+        ? [
+            [0, 1, 2],
+            [1, 0, 2],
+          ]
+        : [
+            [0, 1, 2],
+            [0, 2, 1],
+            [1, 0, 2],
+            [1, 2, 0],
+            [2, 0, 1],
+            [2, 1, 0],
+          ];
+
+      console.log(arrangements);
+      const counts = [];
+      for (let i in arrangements) {
+        const fit = {};
+        fit.description = `
+        box     |objekt
+        ________|_______
+        ${container[0]}     |${item[arrangements[i][0]]}
+        ${container[1]}     |${item[arrangements[i][1]]}
+        ${container[2]}     |${item[arrangements[i][2]]}
+    `;
+        fit.a = {};
+        fit.a.itemEdge = item[arrangements[i][0]];
+        fit.a.calculation = `${container[0]} / ${
+          item[arrangements[i][0]]
+        } = ${Math.floor(container[0] / item[arrangements[i][0]])}, Rest: ${
+          container[0] % item[arrangements[i][0]]
+        }`;
+        fit.a.value = Math.floor(container[0] / item[arrangements[i][0]]);
+        fit.a.fraction = item[arrangements[i][0]] / container[0];
+        fit.b = {};
+        fit.b.itemEdge = item[arrangements[i][1]];
+        fit.b.calculation = `${container[1]} / ${
+          item[arrangements[i][1]]
+        } = ${Math.floor(container[1] / item[arrangements[i][1]])}, Rest: ${
+          container[1] % item[arrangements[i][1]]
+        }`;
+        fit.b.value = Math.floor(container[1] / item[arrangements[i][1]]);
+        fit.b.fraction = item[arrangements[i][1]] / container[1];
+        fit.c = {};
+        fit.c.itemEdge = item[arrangements[i][2]];
+        fit.c.calculation = `${container[2]} / ${
+          item[arrangements[i][2]]
+        } = ${Math.floor(container[2] / item[arrangements[i][2]])}, Rest: ${
+          container[2] % item[arrangements[i][2]]
+        }`;
+        fit.c.value = Math.floor(container[2] / item[arrangements[i][2]]);
+        fit.c.fraction = item[arrangements[i][2]] / container[2];
+        fit.total = fit.a.value * fit.b.value * fit.c.value;
+        counts.push(fit);
+      }
+
+      const max = counts.reduce((prev, current) =>
+        prev.total > current.total ? prev : current
+      );
+
+      return { counts, max, container };
+    };
+
+    const showResult = (max, container) => {
+      const result = document.getElementById("result");
+      result.innerHTML = `
+      <p>maximale Anzahl: ${max.total}</p>
+    `;
+
+      // drawContainer(
+      //   [max.a.fraction, max.b.fraction, max.c.fraction],
+      //   container
+      // );
+    };
+
+    function calculate() {
+      const containerDimensions = [
+        document.getElementById("containerLength").value,
+        document.getElementById("containerWidth").value,
+        document.getElementById("containerHeight").value,
+      ];
+      const itemDimensions = [
+        document.getElementById("itemLength").value,
+        document.getElementById("itemWidth").value,
+        document.getElementById("itemHeight").value,
+      ];
+
+      const cL = parseInt(containerDimensions[0]);
+      const cW = parseInt(containerDimensions[1]);
+      const cH = parseInt(containerDimensions[2]);
+
+      let iL = parseInt(itemDimensions[0]);
+      let iW = parseInt(itemDimensions[1]);
+      let iHe = parseInt(itemDimensions[2]);
+
+      const max = calcMaxFit([cL, cW, cH], [iL, iW, iHe]);
+      console.log(max);
+
+      showResult(max.max, max.container);
+
+      iL = max.max.a.itemEdge;
+      iW = max.max.b.itemEdge;
+      iHe = max.max.c.itemEdge;
+
+      const A = { x: -cL / 2, y: -cW / 2, z: 0 };
+      const B = { x: cL / 2, y: -cW / 2, z: 0 };
+      const C = { x: cL / 2, y: cW / 2, z: 0 };
+      const D = { x: -cL / 2, y: cW / 2, z: 0 };
+      const E = { x: -cL / 2, y: -cW / 2, z: cH };
+      const F = { x: cL / 2, y: -cW / 2, z: cH };
+      const G = { x: cL / 2, y: cW / 2, z: cH };
+      const H = { x: -cL / 2, y: cW / 2, z: cH };
+
+      const containerCoordinates = { A, B, C, D, E, F, G, H };
+
+      const iA = { x: -cL / 2, y: -cW / 2, z: 0 };
+      const iB = { x: -cL / 2 + iL, y: -cW / 2, z: 0 };
+      const iC = { x: -cL / 2 + iL, y: -cW / 2 + iW, z: 0 };
+      const iD = { x: -cL / 2, y: -cW / 2 + iW, z: 0 };
+      const iE = { x: -cL / 2, y: -cW / 2, z: iHe };
+      const iF = { x: -cL / 2 + iL, y: -cW / 2, z: iHe };
+      const iG = { x: -cL / 2 + iL, y: -cW / 2 + iW, z: iHe };
+      const iH = { x: -cL / 2, y: -cW / 2 + iW, z: iHe };
+
+      const itemCoordinates = { iA, iB, iC, iD, iE, iF, iG, iH };
+
+      renderEverything(containerCoordinates, itemCoordinates);
+      return max;
+    }
+
+    const recalculate = () => {
+      const max = calculate();
+      history.unshift({
+        container: {
+          title: document.getElementById("container").value,
+          length: document.getElementById("containerLength").value,
+          width: document.getElementById("containerWidth").value,
+          height: document.getElementById("containerHeight").value,
+        },
+        item: {
+          title:
+            document.getElementById("itemTitleInput")?.value ||
+            "Undefiniertes Teil",
+          length: document.getElementById("itemLength").value,
+          width: document.getElementById("itemWidth").value,
+          height: document.getElementById("itemHeight").value,
+        },
+        result: {
+          max,
+        },
+      });
+
+      const containers = {
+        1: "benutzerdefiniert",
+        2: "GLT/ Gitterbox",
+        3: "KLT groß",
+        4: "KLT mittel",
+        5: "KLT klein",
+        6: "Greifbehälter",
+        7: "Palette",
+      };
+      const historyDisplay = document.getElementById("historyDisplay");
+      historyDisplay.innerHTML = "";
+      console.log(history);
+      history.forEach((prevCalc, i) => {
+        const { container, item, result } = prevCalc;
+        const newDiv = document.createElement("div");
+        newDiv.id = `historyItem${i}`;
+        newDiv.classList.add("cursor-pointer");
+        newDiv.addEventListener("click", () => recall(container, item, i));
+        newDiv.innerHTML = `
+          <div class="flex flex-col" onclick="recall(
+            ${(container, item, i)}
+          )" >
+            <div class="flex flex-row">
+              ${item.title} in ${
+          container.title !== "1"
+            ? containers[container.title]
+            : `
+                benutzerdefiniertem Behälter: (${container.length} x ${container.width} x ${container.height} mm)
+                `
+        }: ${result.max.max.total}
+            </div>
+          </div>
+        `;
+        historyDisplay.appendChild(newDiv);
+      });
+    };
+
+    const recall = (container, item, historyindex) => {
+      console.log(container, item, historyindex);
+      document.getElementById("container").value = container.title;
+      document.getElementById("containerLength").value = container.length;
+      document.getElementById("containerWidth").value = container.width;
+      document.getElementById("containerHeight").value = container.height;
+      document.getElementById("itemTitleInput").value = item.title;
+      document.getElementById("itemLength").value = item.length;
+      document.getElementById("itemWidth").value = item.width;
+      document.getElementById("itemHeight").value = item.height;
+      //remove element with index i from history array
+      history.splice(historyindex, 1);
+      //recalculate
+      recalculate();
+    };
+  </script>
+</html>
