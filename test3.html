@@ -108,10 +108,10 @@
         </div>
       </div>
       <div
-        class="bg-white hidden md:block rounded-xl shadow-xl shadow-gray-400 p-5 row-span-3 z-50"
+        class="bg-white hidden rounded-xl shadow-xl shadow-gray-400 p-5 row-span-3 z-50 md:flex flex-col"
       >
-        <h2 class="text-2xl font-bold">Verlauf</h2>
-        <div class="m-5" id="historyDisplay"></div>
+        <h2 class="text-2xl font-bold flex-none h-max">Verlauf</h2>
+        <div class="m-5 grow overflow-y-scroll" id="historyDisplay"></div>
       </div>
       <div
         class="bg-white rounded-xl shadow-xl shadow-gray-400 p-5 row-span-2 z-50"
@@ -691,7 +691,12 @@
         const { container, item, result } = prevCalc;
         const newDiv = document.createElement("div");
         newDiv.id = `historyItem${i}`;
-        newDiv.classList.add("cursor-pointer");
+        newDiv.classList.add(
+          "cursor-pointer",
+          `${i % 2 === 0 ? "bg-gray-200" : "bg-gray-400"}`,
+          "py-3",
+          "px-2"
+        );
         newDiv.addEventListener("click", () => recall(container, item, i));
         newDiv.innerHTML = `
           <div class="flex flex-col" onclick="recall(
